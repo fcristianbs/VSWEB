@@ -1,0 +1,12 @@
+venv/
+.env
+__pycache__/
+*.pyc
+
+# Banco de dados local e pastas de arquivos
+instance/
+uploads/
+obrafotos/
+downloads/
+downloads_gpm/
+drive_local/s

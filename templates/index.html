@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Scanner COSAMPA Pro IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sticky-tools { position: sticky; top: 0; z-index: 1000; background: white; padding: 15px; border-bottom: 2px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .gpm-panel { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; }
+        .card-doc { position: relative; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 2px solid transparent; transition: transform 0.2s, opacity 0.5s; overflow: hidden; }
+        .card-doc:hover { transform: scale(1.02); }
+        .card-img-top { height: 180px; object-fit: contain; background: #222; cursor: pointer; }
+        .checkbox-container { position: absolute; top: 10px; right: 10px; transform: scale(1.5); z-index: 20; }
+        .btn-zip-float { position: fixed; bottom: 20px; right: 20px; z-index: 2000; border-radius: 50px; padding: 15px 30px; font-weight: bold; }
+        .loading-card { height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #e9ecef; border-radius: 6px; }
+        .modal-body-ajuste { background: #111; height: 75vh; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; padding: 0; }
+        #canvasWrapper { transform-origin: center; will-change: transform; cursor: grab; }
+        #canvasWrapper.grabbing { cursor: grabbing; }
+        #canvasAjuste { box-shadow: 0 0 50px rgba(0,0,0,0.9); display: block; }
+        
+        /* Cores das Bordas baseadas na Categoria */
+        .border-apr { border-color: #198754 !important; border-width: 3px; }
+        .border-pi { border-color: #ffc107 !important; border-width: 3px; }
+        .border-entrega { border-color: #0dcaf0 !important; border-width: 3px; }
+        .border-plano { border-color: #212529 !important; border-width: 3px; }
+        .border-projeto { border-color: #6f42c1 !important; border-width: 3px; }
+        .border-autorizacao { border-color: #dc3545 !important; border-width: 3px; }
+        .border-doc { border-color: #0d6efd !important; border-width: 3px; }
+        .border-foto { border-color: #ced4da !important; border-width: 3px; }
+
+        /* Utilitários Customizados */
+        .bg-purple { background-color: #6f42c1 !important; }
+        .text-purple { color: #6f42c1 !important; }
+        
+        /* Ajustes dos novos blocos de seções */
+        .secao-container { border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .secao-header { padding: 12px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .secao-body { background: white; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #dee2e6; border-top: none; }
+    </style>
+</head>
+<body>
+
+<div class="sticky-tools">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="text-primary fw-bold mb-0">Scanner COSAMPA Pro IA <span id="modoEdicaoBadge" class="badge bg-warning text-dark d-none ms-2">MODO EDIÇÃO</span></h5>
+            <a href="/drive" class="btn btn-dark btn-sm fw-bold px-3 shadow-sm">📁 ACESSAR DRIVE LOCAL</a>
+        </div>
+
+        <div class="row g-2 gpm-panel align-items-end mb-3">
+            <div class="col-md-2"><label class="small fw-bold">Usuário GPM</label><input type="text" id="userGPM" class="form-control form-control-sm bg-dark text-white border-secondary"></div>
+            <div class="col-md-2"><label class="small fw-bold">Senha</label><input type="password" id="passGPM" class="form-control form-control-sm bg-dark text-white border-secondary"></div>
+            <div class="col-md-2"><label class="small fw-bold">Cód. Obra</label><input type="text" id="codigoObra" class="form-control form-control-sm bg-dark text-white border-secondary" oninput="document.getElementById('codigoFunc').value = this.value"></div>
+            <div class="col-md-2"><button onclick="buscarNoGPM()" class="btn btn-warning btn-sm w-100 fw-bold">🚀 BUSCAR GPM</button></div>
+            <div class="col-md-4"><div id="statusGPM" class="badge bg-secondary w-100 p-2 text-wrap text-start" style="min-height: 31px;">Pronto para iniciar</div></div>
+        </div>
+
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2"><label class="small fw-bold">Cód. Obra / PDF Final</label><input type="text" id="codigoFunc" class="form-control" placeholder="Ex: 8386484"></div>
+            
+            <div class="col-md-3">
+                <label class="small fw-bold text-success">Nome da Obra (Runrun.it)</label>
+                <input type="text" id="nomeObra" class="form-control text-success fw-bold bg-light border-success" readonly placeholder="Apenas via Sincronização">
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-primary">Upload Extra / Arquivo Externo</label>
+                <select id="tipoDoc" class="form-select border-primary">
+                    <option value="DOCUMENTO">DOCUMENTO (Geral)</option>
+                    <option value="APR">APR</option>
+                    <option value="PI">PI</option>
+                    <option value="ENTREGA">ENTREGA DE TRABALHO</option>
+                    <option value="PLANO">PLANO AT/MT</option>
+                    <option value="PROJETO">PROJETO DE OBRA</option>
+                    <option value="AUTORIZAÇÃO">AUTORIZAÇÃO</option>
+                    <option value="FOTOS">FOTOS</option>
+                </select>
+            </div>
+            <div class="col-md-3"><label class="small fw-bold">Ignora IA (Entra direto no bloco)</label><input type="file" id="inputFotos" multiple class="form-control border-primary"></div>
+            <div class="col-md-2"><button onclick="fazerUploadManual()" class="btn btn-outline-primary w-100 fw-bold shadow-sm">📥 UPLOAD MANUAL</button></div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2 align-items-center flex-wrap">
+            <button onclick="salvarNoLote()" class="btn btn-success fw-bold px-4">✔ GERAR PDF ORDENADO</button>
+            
+            <div class="d-flex align-items-center bg-light border rounded px-3 py-1 shadow-sm ms-2">
+                <span class="small fw-bold me-2 text-secondary">STATUS GLOBAL DA OBRA:</span>
+                <span id="badgeStatusGlobal" class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm">PENDENTE</span>
+            </div>
+
+            <button onclick="salvarNaNuvem()" class="btn btn-info fw-bold text-white px-4 shadow-sm ms-auto">☁️ SALVAR (NUVEM / DRIVE)</button>
+
+            <span id="contadorLote" class="badge bg-dark ms-2 p-2 fs-6">PDFs NO LOTE: 0</span>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mt-4 pb-5">
+    
+    <div class="secao-container">
+        <div class="secao-header bg-success bg-opacity-10 border border-success border-bottom-0">
+            <h5 class="text-success fw-bold mb-0">🟢 APRs (Análise Preliminar de Risco)</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-success fw-bold text-dark section-status" style="width: 30%;" data-section="APR" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-success section-obs" data-section="APR" placeholder="📝 Adicionar observação / nota para APRs...">
+            </div>
+        </div>
+        <div class="secao-body border-success">
+            <div id="gradeAPR" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-warning bg-opacity-10 border border-warning border-bottom-0">
+            <h5 class="text-warning text-dark fw-bold mb-0">🟡 PIs (Plano de Intervenção)</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-warning fw-bold text-dark section-status" style="width: 30%;" data-section="PI" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-warning section-obs" data-section="PI" placeholder="📝 Adicionar observação / nota para PIs...">
+            </div>
+        </div>
+        <div class="secao-body border-warning">
+            <div id="gradePI" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-info bg-opacity-10 border border-info border-bottom-0">
+            <h5 class="text-info text-dark fw-bold mb-0">🩵 Entrega de Trabalho</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-info fw-bold text-dark section-status" style="width: 30%;" data-section="ENTREGA" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-info section-obs" data-section="ENTREGA" placeholder="📝 Adicionar observação...">
+            </div>
+        </div>
+        <div class="secao-body border-info">
+            <div id="gradeENTREGA" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-dark bg-opacity-10 border border-dark border-bottom-0">
+            <h5 class="text-dark fw-bold mb-0">🖤 Plano de Trabalho (Rede Desenergizada)</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-dark fw-bold text-dark section-status" style="width: 30%;" data-section="PLANO" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-dark section-obs" data-section="PLANO" placeholder="📝 Adicionar observação...">
+            </div>
+        </div>
+        <div class="secao-body border-dark">
+            <div id="gradePLANO" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-purple bg-opacity-10 border border-projeto border-bottom-0" style="border-color: #6f42c1 !important;">
+            <h5 class="text-red fw-bold mb-0"> Projeto de Obra / Eletrificação</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-projeto fw-bold text-dark section-status" style="width: 30%; border-color: #6f42c1;" data-section="PROJETO" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-projeto section-obs" style="border-color: #6f42c1;" data-section="PROJETO" placeholder="📝 Adicionar observação...">
+            </div>
+        </div>
+        <div class="secao-body border-projeto" style="border-color: #6f42c1 !important;">
+            <div id="gradePROJETO" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-danger bg-opacity-10 border border-danger border-bottom-0">
+            <h5 class="text-danger fw-bold mb-0">❤️ Autorização de Trabalho (Energizada)</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-danger fw-bold text-dark section-status" style="width: 30%;" data-section="AUTORIZAÇÃO" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-danger section-obs" data-section="AUTORIZAÇÃO" placeholder="📝 Adicionar observação...">
+            </div>
+        </div>
+        <div class="secao-body border-danger">
+            <div id="gradeAUTORIZACAO" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-primary bg-opacity-10 border border-primary border-bottom-0">
+            <h5 class="text-primary fw-bold mb-0">🔵 Outros Documentos</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-primary fw-bold text-dark section-status" style="width: 30%;" data-section="DOCUMENTO" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-primary section-obs" data-section="DOCUMENTO" placeholder="📝 Adicionar observação...">
+            </div>
+        </div>
+        <div class="secao-body border-primary">
+            <div id="gradeDOCS" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+    <div class="secao-container">
+        <div class="secao-header bg-secondary bg-opacity-10 border border-secondary border-bottom-0">
+            <h5 class="text-secondary fw-bold mb-0">📸 Fotos de Campo & Fila IA</h5>
+            <div class="d-flex gap-2 w-50">
+                <select class="form-select form-select-sm border-secondary fw-bold text-dark section-status" style="width: 30%;" data-section="FOTOS" onchange="verificarStatusGlobal()">
+                    <option value="pendente" selected>🟡 Pendente</option>
+                    <option value="analise">🔵 Em Análise</option>
+                    <option value="ok">🟢 Tudo OK</option>
+                </select>
+                <input type="text" class="form-control form-control-sm border-secondary section-obs" data-section="FOTOS" placeholder="📝 Observação para Fotos...">
+            </div>
+        </div>
+        <div class="secao-body border-secondary">
+            <div id="gradeFOTOS" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 min-vh-25"></div>
+        </div>
+    </div>
+
+</div>
+
+<button onclick="baixarZip()" id="btnZip" class="btn btn-danger btn-zip-float d-none shadow-lg">📦 BAIXAR ZIP DO LOTE</button>
+
+<div class="modal fade" id="modalAjuste" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-dark text-white py-2 border-0">
+                <h6 class="modal-title">Visualizador & Ajuste de Imagem</h6>
+                <div class="ms-auto d-flex gap-2">
+                    <button onclick="girarRapido(idEditando, -90, this)" class="btn btn-outline-light btn-sm">↺ Girar</button>
+                    <button onclick="girarRapido(idEditando, 90, this)" class="btn btn-outline-light btn-sm">Girar ↻</button>
+                    <button onclick="resetarView()" class="btn btn-outline-light btn-sm">Reset</button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body modal-body-ajuste" id="modalCorpo" onwheel="handleZoom(event)">
+                <div id="canvasWrapper"><canvas id="canvasAjuste"></canvas></div>
+            </div>
+            <div class="modal-footer bg-dark border-0 justify-content-between text-white">
+                <button id="btnModo" onclick="toggleModoOriginal()" class="btn btn-warning btn-sm fw-bold">✂️ REAJUSTAR CORTE (MOSTRAR ORIGINAL)</button>
+                <div id="infoPag" class="badge bg-secondary p-2 text-white">ID: --</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let imagensIds = [], pdfCount = 0, idEditando = null, pontos = [], modoCorte = false;
+    let zoom = 1, px = 0, py = 0, isDragging = false, sx, sy;
+    let idProjetoAberto = null; 
+
+    const modal = new bootstrap.Modal(document.getElementById('modalAjuste'));
+    const canvas = document.getElementById('canvasAjuste');
+    const wrapper = document.getElementById('canvasWrapper');
+    const ctx = canvas.getContext('2d');
+    const btnModo = document.getElementById('btnModo');
+
+    // --- NOVA LÓGICA: Atualiza o Status Global Automaticamente ---
+    function verificarStatusGlobal() {
+        const selects = document.querySelectorAll('.section-status');
+        let todosOk = true;
+        
+        selects.forEach(s => {
+            if (s.value !== 'ok') {
+                todosOk = false;
+            }
+        });
+
+        const badge = document.getElementById('badgeStatusGlobal');
+        if(todosOk) {
+            badge.innerText = "CONCLUÍDO";
+            badge.className = "badge bg-success text-white fs-6 px-3 py-2 shadow-sm";
+        } else {
+            badge.innerText = "PENDENTE";
+            badge.className = "badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm";
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const urlCodigo = urlParams.get('codigo');
+        const urlNome = urlParams.get('nome');
+
+        if(urlCodigo) {
+            document.getElementById('codigoObra').value = urlCodigo;
+            document.getElementById('codigoFunc').value = urlCodigo;
+            const st = document.getElementById('statusGPM');
+            st.innerText = "✨ Pronto para buscar no GPM!";
+            st.className = "badge bg-success w-100 p-2 text-wrap text-start text-white";
+        }
+        if(urlNome) {
+            document.getElementById('nomeObra').value = urlNome;
+        }
+
+        const projetoId = urlParams.get('id');
+        
+        if(projetoId) {
+            idProjetoAberto = projetoId;
+            document.getElementById('modoEdicaoBadge').classList.remove('d-none');
+            const st = document.getElementById('statusGPM');
+            
+            try {
+                st.innerText = "📦 Carregando arquivos do Drive..."; 
+                st.className = "badge bg-info text-dark w-100 p-2 text-wrap text-start";
+                
+                const res = await fetch(`/api/carregar_projeto/${projetoId}`);
+                if (!res.ok) throw new Error(`Erro no servidor: ${res.status}`);
+                const dados = await res.json();
+                
+                if(dados.sucesso) {
+                    document.getElementById('codigoFunc').value = dados.projeto.codigo_obra;
+                    document.getElementById('codigoObra').value = dados.projeto.codigo_obra;
+                    
+                    if(dados.projeto.nome_obra) {
+                        document.getElementById('nomeObra').value = dados.projeto.nome_obra;
+                    }
+
+                    // Carrega as seções e observações do Banco de Dados
+                    if(dados.secoes) {
+                        dados.secoes.forEach(sec => {
+                            const sel = document.querySelector(`.section-status[data-section="${sec.nome_secao}"]`);
+                            const obs = document.querySelector(`.section-obs[data-section="${sec.nome_secao}"]`);
+                            if(sel) sel.value = sec.status_secao;
+                            if(obs) obs.value = sec.observacao || '';
+                        });
+                        verificarStatusGlobal(); // Atualiza a pílula lá de cima
+                    }
+                    
+                    dados.documentos.forEach(doc => {
+                        imagensIds.push(doc.id);
+                        updateCardComDados(doc);
+                    });
+                    
+                    st.innerText = "✨ Obra carregada do Drive!"; 
+                    st.className = "badge bg-success text-white w-100 p-2 text-wrap text-start";
+                } else {
+                    st.innerText = "❌ Falha ao carregar: " + dados.erro; 
+                    st.className = "badge bg-danger text-white w-100 p-2 text-wrap text-start";
+                }
+            } catch(e) { 
+                console.error("Erro Crítico ao puxar dados:", e); 
+                st.innerText = "❌ Erro de Conexão (Veja o console)"; 
+                st.className = "badge bg-danger text-white w-100 p-2 text-wrap text-start";
+            }
+        }
+    });
+
+    function upd() { wrapper.style.transform = `translate(${px}px, ${py}px) scale(${zoom})`; }
+    function resetarView() { zoom = 1; px = 0; py = 0; upd(); }
+    function handleZoom(e) { e.preventDefault(); zoom = Math.min(Math.max(0.1, zoom + (e.deltaY * -0.001)), 5); upd(); }
+
+    document.getElementById('modalCorpo').onmousedown = e => { if(!modoCorte){ isDragging=true; wrapper.classList.add('grabbing'); sx=e.clientX-px; sy=e.clientY-py; }};
+    window.onmousemove = e => { if(isDragging){ px=e.clientX-sx; py=e.clientY-sy; upd(); }};
+    window.onmouseup = () => { isDragging=false; wrapper.classList.remove('grabbing'); };
+
+    function abrirAjuste(id) {
+        idEditando = id; modoCorte = false; pontos = []; resetarView();
+        const urlProc = document.querySelector(`#card-${id} img`).src.split('?')[0];
+        carregar(urlProc);
+        btnModo.innerText = "✂️ REAJUSTAR CORTE (MOSTRAR ORIGINAL)";
+        btnModo.className = "btn btn-warning btn-sm fw-bold";
+        document.getElementById('infoPag').innerText = `ID: ${id.substring(0,6)}`;
+        modal.show();
+    }
+
+    function carregar(url) {
+        const img = new Image();
+        img.src = url + "?v=" + new Date().getTime();
+        img.onload = () => { canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0); };
+    }
+
+    function toggleModoOriginal() {
+        modoCorte = !modoCorte;
+        const imgElem = document.querySelector(`#card-${idEditando} img`);
+        const urlProc = imgElem.src.split('?')[0];
+        
+        if(modoCorte) {
+            const urlOriginal = imgElem.getAttribute('data-orig');
+            carregar(urlOriginal);
+            btnModo.innerText = "CANCELAR (VOLTAR PARA CORTADA)";
+            btnModo.className = "btn btn-danger btn-sm fw-bold";
+            resetarView(); canvas.style.cursor = "crosshair";
+        } else {
+            carregar(urlProc);
+            btnModo.innerText = "✂️ REAJUSTAR CORTE (MOSTRAR ORIGINAL)";
+            btnModo.className = "btn btn-warning btn-sm fw-bold";
+            canvas.style.cursor = "default";
+        }
+    }
+
+    canvas.onclick = async e => {
+        if(!modoCorte) return;
+        const r = canvas.getBoundingClientRect();
+        const scX = canvas.width / r.width, scY = canvas.height / r.height;
+        const x = (e.clientX - r.left) * scX, y = (e.clientY - r.top) * scY;
+        pontos.push([x,y]);
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x,y, 25*scX, 0, Math.PI*2); ctx.fill();
+        if(pontos.length === 4) {
+            const res = await fetch('/reajustar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id:idEditando, pontos})});
+            const d = await res.json();
+            if(d.sucesso) { 
+                document.querySelector(`#card-${idEditando} img`).src = d.url + "?v=" + new Date().getTime(); 
+                modal.hide(); 
+            }
+        }
+    }
+
+    async function girarRapido(id, angulo, btnElement) {
+        if(btnElement) btnElement.disabled = true;
+        try {
+            const res = await fetch('/rotacionar_apenas', {
+                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: id, angulo: angulo})
+            });
+            const d = await res.json();
+            if(d.sucesso) {
+                const newUrl = d.url + "?v=" + new Date().getTime();
+                document.querySelector(`#card-${id} img`).src = newUrl;
+                if (idEditando === id) { carregar(newUrl); }
+            }
+        } catch(e) { console.error("Erro ao girar", e); } 
+        finally { if(btnElement) btnElement.disabled = false; }
+    }
+
+    function mudarCategoria(id, novoTipo) {
+        const card = document.getElementById(`card-${id}`);
+        if (!card) return;
+        const innerCard = card.querySelector('.card-doc');
+        
+        innerCard.classList.remove('border-apr', 'border-pi', 'border-entrega', 'border-plano', 'border-projeto', 'border-autorizacao', 'border-doc', 'border-foto');
+        
+        let targetGrid = 'gradeFOTOS';
+        let badgeClass = 'bg-secondary';
+        
+        if (novoTipo === 'APR') { innerCard.classList.add('border-apr'); targetGrid = 'gradeAPR'; badgeClass = 'bg-success'; }
+        else if (novoTipo === 'PI') { innerCard.classList.add('border-pi'); targetGrid = 'gradePI'; badgeClass = 'bg-warning text-dark'; }
+        else if (novoTipo === 'ENTREGA') { innerCard.classList.add('border-entrega'); targetGrid = 'gradeENTREGA'; badgeClass = 'bg-info text-dark'; }
+        else if (novoTipo === 'PLANO AT/MT') { innerCard.classList.add('border-plano'); targetGrid = 'gradePLANO'; badgeClass = 'bg-dark text-white'; }
+        else if (novoTipo === 'PROJETO') { innerCard.classList.add('border-projeto'); targetGrid = 'gradePROJETO'; badgeClass = 'bg-purple text-white'; }
+        else if (novoTipo === 'AUTORIZAÇÃO') { innerCard.classList.add('border-autorizacao'); targetGrid = 'gradeAUTORIZACAO'; badgeClass = 'bg-danger text-white'; }
+        else if (novoTipo === 'DOCUMENTO') { innerCard.classList.add('border-doc'); targetGrid = 'gradeDOCS'; badgeClass = 'bg-primary text-white'; }
+        else { innerCard.classList.add('border-foto'); targetGrid = 'gradeFOTOS'; badgeClass = 'bg-secondary text-white'; }
+
+        const badge = card.querySelector('.badge-tipo');
+        if(badge) {
+            badge.innerText = novoTipo;
+            badge.className = `badge badge-tipo position-absolute top-0 start-0 m-2 z-3 shadow-sm ${badgeClass}`;
+        }
+        
+        document.getElementById(targetGrid).appendChild(card);
+    }
+
+    function deletarImagem(id) {
+        if(confirm("🗑️ Deseja remover esta imagem da tela? (Será apagada do banco ao salvar na nuvem)")) {
+            const card = document.getElementById(`card-${id}`);
+            if(card) card.remove();
+            imagensIds = imagensIds.filter(imgId => imgId !== id);
+        }
+    }
+
+    function renderPlaceholderCard(id) {
+        const div = document.createElement('div');
+        div.className = 'col'; div.id = `card-${id}`;
+        div.innerHTML = `<div class="card card-doc shadow-sm border-foto text-center p-4 loading-card"><div class="spinner-border text-primary mx-auto mb-2" role="status"></div><small class="text-muted fw-bold">Aguardando IA...</small></div>`;
+        document.getElementById('gradeFOTOS').appendChild(div);
+    }
+
+    function updateCardComDados(img) {
+        let div = document.getElementById(`card-${img.id}`);
+        if (!div) { div = document.createElement('div'); div.className = 'col'; div.id = `card-${img.id}`; }
+        
+        let borderClass = "border-foto", targetGrid = "gradeFOTOS", badgeColor = "bg-secondary";
+        
+        if (img.tipo === "APR") { borderClass = "border-apr"; targetGrid = "gradeAPR"; badgeColor = "bg-success"; }
+        else if (img.tipo === "PI") { borderClass = "border-pi"; targetGrid = "gradePI"; badgeColor = "bg-warning text-dark"; }
+        else if (img.tipo === "ENTREGA") { borderClass = "border-entrega"; targetGrid = "gradeENTREGA"; badgeColor = "bg-info text-dark"; }
+        else if (img.tipo === "PLANO AT/MT") { borderClass = "border-plano"; targetGrid = "gradePLANO"; badgeColor = "bg-dark text-white"; }
+        else if (img.tipo === "PROJETO") { borderClass = "border-projeto"; targetGrid = "gradePROJETO"; badgeColor = "bg-purple text-white"; }
+        else if (img.tipo === "AUTORIZAÇÃO") { borderClass = "border-autorizacao"; targetGrid = "gradeAUTORIZACAO"; badgeColor = "bg-danger text-white"; }
+        else if (img.tipo === "DOCUMENTO") { borderClass = "border-doc"; targetGrid = "gradeDOCS"; badgeColor = "bg-primary"; }
+
+        // Se for upload manual (bypass), colocamos um icone para diferenciar
+        const iconeManual = img.is_manual ? '⚙️' : '';
+        const badgeHTML = `<span class="badge badge-tipo ${badgeColor} position-absolute top-0 start-0 m-2 z-3 shadow-sm" style="font-size: 0.8rem;">${iconeManual} ${img.tipo || 'Desconhecido'}</span>`;
+        const valorPagina = (img.ordem !== undefined && img.ordem < 9000) ? img.ordem : '';
+
+        const headerHTML = `
+            <div class="position-absolute top-0 end-0 m-2 z-3 d-flex align-items-center gap-2">
+                <button class="btn btn-danger btn-sm p-1 shadow-sm" onclick="deletarImagem('${img.id}')" title="Remover" style="line-height: 1;"><small>🗑️</small></button>
+                <input type="checkbox" class="checkbox-select form-check-input shadow-sm m-0" value="${img.id}" style="transform: scale(1.3);" checked>
+            </div>`;
+
+        const rotateHTML = `
+            <div class="position-absolute z-3 d-flex gap-1" style="bottom: 50px; right: 10px;">
+                <button class="btn btn-sm btn-dark opacity-75 text-white px-2 py-1 shadow" onclick="girarRapido('${img.id}', -90, this); event.stopPropagation();">↺</button>
+                <button class="btn btn-sm btn-dark opacity-75 text-white px-2 py-1 shadow" onclick="girarRapido('${img.id}', 90, this); event.stopPropagation();">↻</button>
+            </div>`;
+
+        const rodapeHTML = `
+            <div class="card-footer bg-light p-2 d-flex justify-content-between align-items-center border-top">
+                <select class="form-select form-select-sm fw-bold border-secondary text-center shadow-none w-50" onchange="mudarCategoria('${img.id}', this.value)" style="font-size: 0.65rem; cursor: pointer; padding: 0.2rem;">
+                    <option value="APR" ${img.tipo === 'APR' ? 'selected' : ''}>🟢 APR</option>
+                    <option value="PI" ${img.tipo === 'PI' ? 'selected' : ''}>🟡 PI</option>
+                    <option value="ENTREGA" ${img.tipo === 'ENTREGA' ? 'selected' : ''}>🩵 ENTREGA</option>
+                    <option value="PLANO AT/MT" ${img.tipo === 'PLANO AT/MT' ? 'selected' : ''}>🖤 PLANO</option>
+                    <option value="PROJETO" ${img.tipo === 'PROJETO' ? 'selected' : ''}>💜 PROJETO</option>
+                    <option value="AUTORIZAÇÃO" ${img.tipo === 'AUTORIZAÇÃO' ? 'selected' : ''}>❤️ AUTORIZ.</option>
+                    <option value="DOCUMENTO" ${img.tipo === 'DOCUMENTO' ? 'selected' : ''}>🔵 DOC.</option>
+                    <option value="FOTOS" ${img.tipo === 'FOTOS' ? 'selected' : ''}>📸 FOTO</option>
+                </select>
+                <div class="d-flex align-items-center ps-2">
+                    <label class="small fw-bold me-1 mb-0 text-dark">Pág:</label>
+                    <input type="number" class="form-control form-control-sm page-order-input border-secondary text-center px-1" value="${valorPagina}" style="width: 45px; height: 26px; font-size: 0.8rem;" min="1" placeholder="-">
+                </div>
+            </div>`;
+
+        div.innerHTML = `
+            <div class="card card-doc shadow-sm ${borderClass} position-relative" style="animation: fadeIn 0.5s;">
+                ${badgeHTML}
+                ${headerHTML}
+                ${rotateHTML}
+                <img src="${img.url}" data-orig="${img.url_orig || ''}" data-is-manual="${img.is_manual ? 'true' : 'false'}" class="card-img-top" onclick="abrirAjuste('${img.id}')">
+                ${rodapeHTML}
+            </div>`;
+        document.getElementById(targetGrid).appendChild(div);
+    }
+
+    async function iniciarFilaDeProcessamento(idsExtracao, statusElement) {
+        let concluidos = 0;
+        idsExtracao.forEach(item => { if(!imagensIds.includes(item.id)) { imagensIds.push(item.id); renderPlaceholderCard(item.id); } });
+        for (let item of idsExtracao) {
+            try {
+                const resp = await fetch('/processar_imagem_unica', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id: item.id}) });
+                const imgProcessada = await resp.json();
+                updateCardComDados(imgProcessada);
+            } catch(e) {}
+            concluidos++; if (statusElement) statusElement.innerText = `🧠 Processando IA (${concluidos}/${idsExtracao.length})...`;
+        }
+        if (statusElement) { statusElement.innerText = "✨ Processamento concluído!"; statusElement.className = "badge bg-success w-100 p-2 text-wrap text-start text-white"; }
+    }
+
+    async function buscarNoGPM() {
+        const u = document.getElementById('userGPM').value, p = document.getElementById('passGPM').value, c = document.getElementById('codigoObra').value;
+        if(!u || !p || !c) return alert("Preencha Usuário, Senha e Código!");
+        document.getElementById('codigoFunc').value = c;
+        const st = document.getElementById('statusGPM');
+        st.innerText = "🚀 Iniciando Robô..."; st.className = "badge bg-warning text-dark w-100 p-2 text-wrap text-start";
+        fetch('/buscar_gpm', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user:u, pass:p, codigo:c})});
+        const evt = new EventSource("/progresso_gpm");
+        evt.onmessage = async e => {
+            st.innerText = e.data;
+            if(e.data.includes("✅")) {
+                evt.close(); st.innerText = "📦 Extraindo arquivos ZIP...";
+                const resp = await fetch('/processar_download_gpm', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({codigo:c})});
+                const imgs_ids = await resp.json();
+                st.innerText = `🧠 Preparando Fila da IA...`; st.className = "badge bg-info text-dark w-100 p-2 text-wrap text-start";
+                iniciarFilaDeProcessamento(imgs_ids, st);
+            }
+        };
+    }
+
+    // --- NOVA FUNÇÃO DE UPLOAD MANUAL (PULA A INTELIGÊNCIA ARTIFICIAL) ---
+    async function fazerUploadManual() {
+        const inputFiles = document.getElementById('inputFotos').files;
+        const tipoDesejado = document.getElementById('tipoDoc').value;
+        
+        if(inputFiles.length === 0) return alert("Por favor, selecione ao menos um arquivo.");
+        
+        const fd = new FormData();
+        for(let f of inputFiles) fd.append('fotos', f);
+        
+        // Passa o tipo selecionado para o backend já devolver com a categoria certa
+        fd.append('tipo_documento', tipoDesejado);
+        
+        const st = document.getElementById('statusGPM');
+        st.innerText = "📥 Realizando Upload Manual (Bypass IA)..."; 
+        st.className = "badge bg-primary text-white w-100 p-2 text-wrap text-start";
+        
+        try {
+            // Em breve criaremos a rota /upload_manual no Flask
+            const resp = await fetch('/upload_manual', {method:'POST', body:fd});
+            const imagensPuras = await resp.json();
+            
+            imagensPuras.forEach(img => {
+                imagensIds.push(img.id);
+                updateCardComDados(img); // Renderiza direto na gaveta!
+            });
+            
+            st.innerText = "✅ Upload Manual Concluído (Direto para o Bloco)"; 
+            st.className = "badge bg-success text-white w-100 p-2 text-wrap text-start";
+            document.getElementById('inputFotos').value = ""; // limpa o input
+        } catch(e) {
+            alert("Erro no upload manual. A conexão com o servidor falhou.");
+        }
+    }
+
+    async function salvarNoLote() {
+        const cod = document.getElementById('codigoFunc').value;
+        const tipo = document.getElementById('tipoDoc').value; // Usado temporariamente para o nome do arquivo ZIP
+        const selecionados = Array.from(document.querySelectorAll('.checkbox-select:checked'));
+        if(!cod || !selecionados.length) return alert("Erro: Código vazio ou nenhuma imagem selecionada!");
+
+        const dadosOrdenados = selecionados.map((cb, index) => {
+            const card = cb.closest('.card');
+            const inputPag = card.querySelector('.page-order-input');
+            return { id: cb.value, ordem: (inputPag && inputPag.value) ? parseInt(inputPag.value) : (9000 + index) };
+        }).sort((a, b) => a.ordem - b.ordem);
+        
+        try {
+            const res = await fetch('/salvar_documento', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({codigo: cod, tipo: tipo, ids: dadosOrdenados.map(item => item.id)}) });
+            const dados = await res.json();
+            if(dados.sucesso) {
+                pdfCount++; document.getElementById('contadorLote').innerText = `PDFs NO LOTE: ${pdfCount}`; document.getElementById('btnZip').classList.remove('d-none');
+            } else alert("⚠️ Erro ao gerar PDF: " + dados.erro);
+        } catch(e) {}
+    }
+
+    async function baixarZip() { window.location.href = (await (await fetch('/exportar_zip', {method:'POST'})).json()).url; }
+
+    // --- SALVAR NA NUVEM (AGORA PEGA AS INFORMAÇÕES DE CADA GAVETA) ---
+    async function salvarNaNuvem() {
+        const cod = document.getElementById('codigoFunc').value;
+        const nomeObra = document.getElementById('nomeObra').value; 
+        const statusProj = document.getElementById('badgeStatusGlobal').innerText; // Pega o cálculo automático PENDENTE/CONCLUIDO
+        const selecionados = Array.from(document.querySelectorAll('.checkbox-select:checked'));
+        
+        if(!cod || !selecionados.length) return alert("Erro: Código vazio ou nenhuma imagem selecionada!");
+
+        // 1. Coleta os documentos
+        const dadosCompletos = selecionados.map((cb, index) => {
+            const card = cb.closest('.card');
+            const inputPag = card.querySelector('.page-order-input');
+            const selectCat = card.querySelector('.form-select');
+            const imgEl = card.querySelector('.card-img-top');
+            
+            return { 
+                id: cb.value, 
+                ordem: (inputPag && inputPag.value) ? parseInt(inputPag.value) : (9000 + index), 
+                categoria: selectCat ? selectCat.value : 'FOTOS',
+                is_manual: imgEl ? (imgEl.getAttribute('data-is-manual') === 'true') : false
+            };
+        });
+
+        // 2. Coleta os status e observações de cada seção (Gaveta)
+        const secoesAtuais = [];
+        document.querySelectorAll('.section-status').forEach(select => {
+            const nomeSecao = select.getAttribute('data-section');
+            const inputObs = document.querySelector(`.section-obs[data-section="${nomeSecao}"]`);
+            secoesAtuais.push({
+                nome_secao: nomeSecao,
+                status_secao: select.value,
+                observacao: inputObs ? inputObs.value : ''
+            });
+        });
+
+        try {
+            const st = document.getElementById('statusGPM');
+            st.innerText = "☁️ Gravando no Banco de Dados..."; st.className = "badge bg-info text-dark w-100 p-2 text-wrap text-start";
+            
+            const res = await fetch('/salvar_nuvem', { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body: JSON.stringify({
+                    codigo: cod, 
+                    nome_obra: nomeObra,
+                    status_global: statusProj, // Enviando o nome correto
+                    secoes: secoesAtuais,      // Enviando o array de gavetas
+                    documentos: dadosCompletos, 
+                    projeto_id: idProjetoAberto
+                }) 
+            });
+            const dados = await res.json();
+            
+            if(dados.sucesso) {
+                st.innerText = "✅ Salvo no Drive com Sucesso!"; st.className = "badge bg-success text-white w-100 p-2 text-wrap text-start";
+                if(dados.novo_id_projeto) { idProjetoAberto = dados.novo_id_projeto; document.getElementById('modoEdicaoBadge').classList.remove('d-none'); }
+                alert("Projeto gravado permanentemente!");
+            } else alert("⚠️ Erro ao salvar: " + dados.erro);
+        } catch(e) { alert("❌ Erro de comunicação com o servidor."); }
+    }
+</script>
+</body>
+</html>

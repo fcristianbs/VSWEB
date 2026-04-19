@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Drive de Obras - Kanban COSAMPA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #e9ecef; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; overflow: hidden; }
+        .navbar-custom { background: #2c3e50; color: white; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .kanban-board { height: calc(100vh - 80px); padding: 20px; overflow-x: auto; }
+        .kanban-col { background: #f4f7f6; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 100%; border: 1px solid #dee2e6; }
+        .kanban-header { padding: 15px; border-bottom: 2px solid #e9ecef; border-radius: 10px 10px 0 0; }
+        
+        /* Adicionado transition no flexbox para a fila animar quando mudar a ordem */
+        .kanban-body { padding: 15px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; transition: all 0.3s ease; }
+        .kanban-body::-webkit-scrollbar { width: 6px; }
+        .kanban-body::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .kanban-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        
+        .kanban-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #eee; border-left-width: 5px; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .card-pendencia { border-left-color: #ffc107; }
+        .card-concluido { border-left-color: #198754; }
+        .card-fila { border-left-color: #0dcaf0; }
+        .status-badge { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 50px; display: inline-flex; align-items: center; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar-custom">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 fw-bold">📊 Gestão de Obras - COSAMPA</h4>
+        <a href="/" class="btn btn-success btn-sm fw-bold px-4 shadow-sm">📤 NOVO PROCESSO MANUAL</a>
+    </div>
+</nav>
+
+<div class="container-fluid kanban-board">
+    <div class="row h-100 flex-nowrap">
+        
+        <div class="col-12 col-md-4 col-lg-4 h-100">
+            <div class="kanban-col">
+                <div class="kanban-header bg-warning bg-opacity-25 border-warning border-bottom">
+                    <h6 class="fw-bold text-dark mb-3 d-flex justify-content-between align-items-center">
+                        <span>🟡 PENDÊNCIAS / ANÁLISE</span>
+                        <span class="badge bg-warning text-dark rounded-pill fs-6 shadow-sm" id="count-pendencias">0</span>
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="buscaPendencias" class="form-control form-control-sm" placeholder="🔍 Cód. Obra..." onkeyup="filtrarColuna('pendencias', this.value)">
+                    </div>
+                </div>
+                <div class="kanban-body" id="coluna-pendencias">
+                    {% for projeto in projetos %}
+                        {% if projeto.status_manual != 'CONCLUÍDO' %}
+                        <div class="kanban-card card-pendencia" data-codigo="{{ projeto.codigo_obra }}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">#{{ projeto.codigo_obra }}</h6>
+                                </div>
+                                <span class="status-badge bg-warning text-dark">{{ projeto.status_manual }}</span>
+                            </div>
+                            {% if projeto.nome_obra %}
+                                <p class="small text-secondary mb-2 lh-sm fw-semibold">{{ projeto.nome_obra }}</p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                <span class="badge bg-light text-dark border">{{ projeto.documentos|length }} docs</span>
+                                <a href="/?id={{ projeto.id }}" class="btn btn-primary btn-sm fw-bold px-3">Abrir / Editar</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4 col-lg-4 h-100">
+            <div class="kanban-col">
+                <div class="kanban-header bg-success bg-opacity-25 border-success border-bottom">
+                    <h6 class="fw-bold text-dark mb-3 d-flex justify-content-between align-items-center">
+                        <span>🟢 CONCLUÍDOS</span>
+                        <span class="badge bg-success rounded-pill fs-6 shadow-sm" id="count-concluidos">0</span>
+                    </h6>
+                    <input type="text" id="buscaConcluidos" class="form-control form-control-sm" placeholder="🔍 Buscar obra concluída..." onkeyup="filtrarColuna('concluidos', this.value)">
+                </div>
+                <div class="kanban-body" id="coluna-concluidos">
+                    {% for projeto in projetos %}
+                        {% if projeto.status_manual == 'CONCLUÍDO' %}
+                        <div class="kanban-card card-concluido" data-codigo="{{ projeto.codigo_obra }}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">#{{ projeto.codigo_obra }}</h6>
+                                </div>
+                                <span class="status-badge bg-success text-white">CONCLUÍDO</span>
+                            </div>
+                            {% if projeto.nome_obra %}
+                                <p class="small text-secondary mb-2 lh-sm fw-semibold">{{ projeto.nome_obra }}</p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                <a href="/?id={{ projeto.id }}" class="btn btn-outline-success btn-sm fw-bold">Visualizar</a>
+                                <button class="btn btn-outline-danger btn-sm p-1" onclick="deletarProjeto('{{ projeto.id }}')" title="Excluir Arquivos Locais">🗑️</button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4 col-lg-4 h-100">
+            <div class="kanban-col">
+                <div class="kanban-header bg-info bg-opacity-25 border-info border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            🤖 FILA DO ROBÔ
+                            <span class="badge bg-info text-dark rounded-pill fs-6 shadow-sm" id="count-fila">0</span>
+                        </h6>
+                        <button id="btnPausaRobo" class="btn btn-secondary btn-sm fw-bold shadow-sm" onclick="togglePausaRobo()">... Carregando</button>
+                    </div>
+                    
+                    <div class="input-group input-group-sm mb-2 shadow-sm">
+                        <input type="text" id="inputManualPrioridade" class="form-control" placeholder="Inserir Cód. Obra Prioritário">
+                        <button onclick="priorizarInputManual()" class="btn btn-warning fw-bold text-dark px-3" title="Colocar no topo da fila">⭐ Priorizar</button>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2 mt-2">
+                        <div class="input-group input-group-sm shadow-sm">
+                            <span class="input-group-text bg-white fw-bold">Até:</span>
+                            <input type="date" id="dataLimiteRunrunit" class="form-control" title="Coletar obras a partir de qual data?">
+                            <button onclick="sincronizarRunrunit()" class="btn btn-info fw-bold text-dark px-3" id="btnSync" title="Buscar no Runrun.it">📡 Buscar</button>
+                            <button onclick="limparFila()" class="btn btn-outline-danger px-2" id="btnLimpar" title="Limpar fila de espera">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="kanban-body" id="listaRunrunit">
+                    <div class="text-muted small w-100 text-center py-4" id="msg-fila-vazia">
+                        <em>A fila está vazia.</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Carrega estado do Robô Real
+        await checarStatusRobo();
+
+        const dataSalva = localStorage.getItem('dataFilaCosampa');
+        if(dataSalva) document.getElementById('dataLimiteRunrunit').value = dataSalva;
+
+        document.getElementById('dataLimiteRunrunit').addEventListener('change', function() {
+            localStorage.setItem('dataFilaCosampa', this.value);
+        });
+
+        await carregarFilaDoBanco();
+        atualizarContadores();
+        setInterval(monitorarFilaRobo, 3000); 
+    });
+
+    // --- CONTROLE DE PAUSA REAL NO BANCO ---
+    async function checarStatusRobo() {
+        try {
+            const res = await fetch('/api/status_robo');
+            const dados = await res.json();
+            atualizaBotaoPausa(dados.status);
+        } catch(e) {}
+    }
+
+    async function togglePausaRobo() {
+        try {
+            const res = await fetch('/api/toggle_robo', { method: 'POST' });
+            const dados = await res.json();
+            atualizaBotaoPausa(dados.status);
+            if(dados.status === 'PAUSADO') alert("⏸️ O Robô foi pausado com sucesso.");
+            else alert("▶️ Robô retomado!");
+        } catch(e) { alert("Erro ao pausar robô."); }
+    }
+
+    function atualizaBotaoPausa(status) {
+        const btn = document.getElementById('btnPausaRobo');
+        if(status === 'PAUSADO') {
+            btn.innerHTML = "▶️ Retomar";
+            btn.className = "btn btn-success btn-sm fw-bold shadow-sm";
+        } else {
+            btn.innerHTML = "⏸️ Pausar";
+            btn.className = "btn btn-danger btn-sm fw-bold shadow-sm";
+        }
+    }
+
+    // --- PRIORIZAÇÃO DE OBRAS ---
+    async function priorizarInputManual() {
+        const input = document.getElementById('inputManualPrioridade');
+        const codigo = input.value.trim();
+        if (!codigo) return alert("Digite um código de obra primeiro.");
+        
+        input.value = "";
+        await enviarPrioridade(codigo);
+    }
+
+    async function enviarPrioridade(codigo) {
+        try {
+            const res = await fetch('/api/priorizar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: codigo })
+            });
+            const dados = await res.json();
+            if (dados.sucesso) {
+                await carregarFilaDoBanco(); // Recarrega a tela pra obra pular pro topo
+            }
+        } catch(e) { alert("Erro ao priorizar."); }
+    }
+
+    async function carregarFilaDoBanco() {
+        try {
+            const res = await fetch('/api/status_fila');
+            const dados = await res.json();
+            
+            if (dados.sucesso) {
+                const divLista = document.getElementById('listaRunrunit');
+                const arrayFila = dados.fila; // Agora o Python devolve a lista já na ordem certa!
+                
+                if (arrayFila.length === 0) {
+                    divLista.innerHTML = `<div class="text-muted small w-100 text-center py-4" id="msg-fila-vazia"><em>A fila está vazia.</em></div>`;
+                } else {
+                    divLista.innerHTML = ''; 
+                    
+                    arrayFila.forEach((info, index) => {
+                        // A propriedade order do Flexbox dita quem aparece em cima!
+                        let badgePrioridade = info.is_prioridade ? '<span class="badge bg-warning text-dark border ms-1">⭐ URGENTE</span>' : '';
+                        
+                        divLista.innerHTML += `
+                            <div class="kanban-card card-fila shadow-sm" data-codigo="${info.codigo}" id="fila-card-${info.codigo}" style="order: ${index};">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold text-dark mb-0">#${info.codigo} ${badgePrioridade}</h6>
+                                    <span class="status-badge bg-secondary text-white badge-robo" id="badge-${info.codigo}">${info.status}</span>
+                                </div>
+                                <p class="small text-secondary mb-2 lh-sm fw-semibold">${info.nome || 'Obra GPM'}</p>
+                                
+                                <div class="small text-primary mb-2 fw-bold d-none detalhe-robo" id="detalhe-${info.codigo}" style="font-size: 0.75rem;">${info.erro || ''}</div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                    <button onclick="enviarPrioridade('${info.codigo}')" class="btn btn-outline-warning btn-sm fw-bold px-2 py-0" title="Subir para o topo">⭐</button>
+                                    <a href="/?codigo=${info.codigo}&nome=${encodeURIComponent(info.nome || '')}" class="btn btn-outline-secondary btn-sm fw-bold px-2 py-0">Fazer Manual</a>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Restaura o visual se já estava processando
+                        if(info.status === 'PROCESSANDO') {
+                            document.getElementById(`fila-card-${info.codigo}`).style.borderLeftColor = "#0d6efd"; 
+                            document.getElementById(`badge-${info.codigo}`).className = "status-badge bg-primary text-white badge-robo";
+                            document.getElementById(`detalhe-${info.codigo}`).classList.remove('d-none');
+                        } else if(info.status === 'ERRO') {
+                            document.getElementById(`fila-card-${info.codigo}`).style.borderLeftColor = "#dc3545"; 
+                            document.getElementById(`badge-${info.codigo}`).className = "status-badge bg-danger text-white badge-robo";
+                            document.getElementById(`detalhe-${info.codigo}`).classList.remove('d-none');
+                        }
+                    });
+                }
+                atualizarContadores();
+            }
+        } catch(e) {}
+    }
+
+    async function limparFila() {
+        if (!confirm("⚠️ Tem certeza que deseja esvaziar a Fila do Robô?\n(O que ele estiver processando agora não será interrompido).")) return;
+        try {
+            const res = await fetch('/api/limpar_fila', { method: 'DELETE' });
+            if ((await res.json()).sucesso) {
+                await carregarFilaDoBanco();
+            }
+        } catch (e) { alert("❌ Erro de conexão ao limpar a fila."); }
+    }
+
+    function atualizarContadores() {
+        document.getElementById('count-pendencias').innerText = document.querySelectorAll('#coluna-pendencias .kanban-card:not([style*="display: none"])').length;
+        document.getElementById('count-concluidos').innerText = document.querySelectorAll('#coluna-concluidos .kanban-card:not([style*="display: none"])').length;
+        document.getElementById('count-fila').innerText = document.querySelectorAll('#listaRunrunit .kanban-card').length;
+    }
+
+    function filtrarColuna(colunaId, texto) {
+        const busca = texto.toUpperCase();
+        document.querySelectorAll(`#coluna-${colunaId} .kanban-card`).forEach(card => {
+            card.style.display = card.getAttribute('data-codigo').toUpperCase().includes(busca) ? "" : "none";
+        });
+        atualizarContadores();
+    }
+
+    async function sincronizarRunrunit() {
+        const btn = document.getElementById('btnSync');
+        const dataLimite = document.getElementById('dataLimiteRunrunit').value;
+        const urlBusca = dataLimite ? `/api/runrunit/obras_recentes?data=${dataLimite}` : '/api/runrunit/obras_recentes';
+        
+        btn.innerHTML = `⏳...`;
+        btn.disabled = true;
+        
+        try {
+            const res = await fetch(urlBusca);
+            const dados = await res.json();
+            
+            if(dados.sucesso) {
+                const resFila = await fetch('/api/adicionar_fila', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ obras: dados.obras })
+                });
+                const dadosFila = await resFila.json();
+
+                if (dadosFila.adicionadas > 0) alert(`✨ Sucesso! ${dadosFila.adicionadas} novas obras foram enfileiradas.`);
+                else alert(`💡 Nenhuma obra nova enfileirada.\nTodas as obras dessa data já estavam na Fila ou já foram processadas.`);
+
+                await carregarFilaDoBanco();
+            } else { alert("Erro ao buscar: " + dados.erro); }
+        } catch(e) { alert("Erro de conexão."); } 
+        finally { btn.innerHTML = "📡 Buscar"; btn.disabled = false; }
+    }
+
+    // Radar atualizado para ORDENAÇÃO DINÂMICA
+    async function monitorarFilaRobo() {
+        const cartoesFila = document.querySelectorAll('#listaRunrunit .kanban-card');
+        if (cartoesFila.length === 0) return;
+
+        try {
+            const res = await fetch('/api/status_fila');
+            const dados = await res.json();
+
+            if (dados.sucesso) {
+                let precisaRecarregarAteATela = false;
+
+                dados.fila.forEach((info, index) => {
+                    const card = document.getElementById(`fila-card-${info.codigo}`);
+                    
+                    // Se o Python mandou uma obra que não está na tela (ex: você botou pelo campo priorizar de outra aba), recarrega
+                    if (!card) {
+                        precisaRecarregarAteATela = true;
+                        return;
+                    }
+
+                    // Força a mudança de posição visual usando Flexbox Order (A mágica de manter no topo)
+                    card.style.order = index;
+
+                    const badge = document.getElementById(`badge-${info.codigo}`);
+                    const detalhe = document.getElementById(`detalhe-${info.codigo}`);
+
+                    if (info.status === 'PROCESSANDO') {
+                        card.style.borderLeftColor = "#0d6efd"; 
+                        card.classList.add('shadow-lg'); 
+                        badge.className = "status-badge bg-primary text-white badge-robo";
+                        badge.innerHTML = `PROCESSANDO`;
+                        
+                        detalhe.classList.remove('d-none');
+                        detalhe.className = "small text-primary mb-2 fw-bold detalhe-robo";
+                        detalhe.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" style="width: 0.8rem; height: 0.8rem;"></span> ${info.erro || 'Iniciando...'}`;
+                    } 
+                    else if (info.status === 'ERRO') {
+                        card.style.borderLeftColor = "#dc3545";
+                        badge.className = "status-badge bg-danger text-white badge-robo";
+                        badge.innerHTML = `⚠️ ERRO`;
+                        
+                        detalhe.classList.remove('d-none');
+                        detalhe.className = "small text-danger mb-2 fw-bold detalhe-robo";
+                        detalhe.innerHTML = info.erro;
+                    }
+                });
+
+                // Se uma obra sumiu da API (Concluiu), nós rodamos a animação verde nela
+                cartoesFila.forEach(card => {
+                    const codigo = card.getAttribute('data-codigo');
+                    const infoNoBanco = dados.fila.find(i => i.codigo === codigo);
+                    
+                    if (!infoNoBanco && !card.classList.contains('animando-saida')) {
+                        card.classList.add('animando-saida');
+                        card.style.borderLeftColor = "#198754";
+                        card.style.backgroundColor = "#f8fff9";
+                        
+                        const badge = document.getElementById(`badge-${codigo}`);
+                        badge.className = "status-badge bg-success text-white badge-robo";
+                        badge.innerHTML = `✅ CONCLUÍDO`;
+                        
+                        const detalhe = document.getElementById(`detalhe-${codigo}`);
+                        detalhe.classList.remove('d-none');
+                        detalhe.className = "small text-success mb-2 fw-bold detalhe-robo";
+                        detalhe.innerHTML = "Finalizado! Movendo para Pendências...";
+                        
+                        setTimeout(() => { window.location.reload(); }, 2500);
+                    }
+                });
+
+                if (precisaRecarregarAteATela) carregarFilaDoBanco();
+            }
+        } catch(e) {}
+    }
+
+    async function deletarProjeto(id) {
+        if (!confirm("⚠️ ATENÇÃO: Deseja realmente excluir este projeto e apagar todos os ficheiros do Drive Local?")) return;
+        try {
+            const res = await fetch(`/api/excluir_projeto/${id}`, { method: 'DELETE' });
+            if ((await res.json()).sucesso) window.location.reload(); 
+        } catch (e) { alert("❌ Erro de conexão."); }
+    }
+</script>
+</body>
+</html>
