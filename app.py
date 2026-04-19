@@ -9,8 +9,11 @@ from automacao import MotorGPM
 
 # --- IMPORTAÇÕES ATUALIZADAS (Com as Novas Tabelas) ---
 from models import db, Projeto, SecaoProjeto, Documento, FilaProcessamento, ConfiguracaoSistema 
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -24,8 +27,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cosampa_drive.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # --- CONFIGURAÇÕES DO RUNRUN.IT ---
-RUNRUNIT_APP_KEY = "c6b117ebe34456684d53d7e7c6952160"
-RUNRUNIT_USER_TOKEN = "Spq8Zf69iyYUf9OPoIeg"
+RUNRUNIT_APP_KEY = os.getenv("RUNRUNIT_APP_KEY")
+RUNRUNIT_USER_TOKEN = os.getenv("RUNRUNIT_USER_TOKEN")
 
 for pasta in [UPLOAD_FOLDER, DOWNLOADS_GPM, DRIVE_FOLDER]:
     if not os.path.exists(pasta): os.makedirs(pasta)

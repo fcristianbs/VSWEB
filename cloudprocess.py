@@ -1,4 +1,8 @@
+import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 import time
 import shutil
 import zipfile
@@ -14,15 +18,18 @@ from automacao import MotorGPM
 # ==========================================
 # CONFIGURAÇÕES DO ROBÔ (Preencha aqui)
 # ==========================================
-GPM_USUARIO = "cristian"
-GPM_SENHA = "123mudar!"
+GPM_USUARIO = os.getenv("GPM_USUARIO")
+GPM_SENHA = os.getenv("GPM_SENHA")
 TEMPO_ESPERA_FILA = 15  # Segundos que ele espera antes de checar a fila de novo
 TEMPO_PAUSA_ENTRE_OBRAS = 30 # Respiro obrigatório para o GPM não bloquear seu IP
 
 def log_robo(msg):
     """Imprime os logs no terminal do Worker e força a exibição (flush=True)"""
     agora = datetime.now().strftime("%H:%M:%S")
-    print(f"[{agora}] 🤖 {msg}", flush=True)
+    try:
+        print(f"[{agora}] 🤖 {msg}", flush=True)
+    except UnicodeEncodeError:
+        print(f"[{agora}] [ROBO] {msg}".encode('ascii', 'ignore').decode('ascii'), flush=True)
 
 def verificar_se_pausado():
     """Consulta o banco de dados para ver se você apertou o botão de Pausa no painel"""

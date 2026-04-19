@@ -1,7 +1,11 @@
 from google import genai
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # Substitua pela sua chave
-client = genai.Client(api_key="AIzaSyA2HdAhtIkhj0Fya6lnLBUii6mg0kd5GZY")
+client = genai.Client(api_key=os.getenv("CHAVE_API_GEMINI"))
 
 print("Modelos disponíveis para a sua API Key:")
 print("-" * 40)

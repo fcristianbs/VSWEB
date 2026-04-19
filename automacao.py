@@ -1,6 +1,6 @@
-from selenium.webdriver import Edge
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
+from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 import requests
@@ -30,7 +30,7 @@ class MotorGPM:
             options.add_argument("--disable-gpu")
             options.add_argument("--log-level=3") 
             
-            self.driver = Edge(service=Service(), options=options)
+            self.driver = Chrome(service=Service(), options=options)
             self.login(self.usuario, self.senha)
             self.driver.quit()
             

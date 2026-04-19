@@ -5,8 +5,11 @@ import PIL.Image
 from google import genai
 import time 
 
+from dotenv import load_dotenv
+
+load_dotenv()
 # --- CONFIGURAÇÃO DA API ---
-CHAVE_API_GEMINI = "AIzaSyA2HdAhtIkhj0Fya6lnLBUii6mg0kd5GZY" 
+CHAVE_API_GEMINI = os.getenv("CHAVE_API_GEMINI") 
 
 try:
     client = genai.Client(api_key=CHAVE_API_GEMINI)
