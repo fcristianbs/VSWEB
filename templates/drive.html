@@ -45,13 +45,14 @@
                         <span class="badge bg-warning text-dark rounded-pill fs-6 shadow-sm" id="count-pendencias">0</span>
                     </h6>
                     <div class="d-flex gap-2">
-                        <input type="text" id="buscaPendencias" class="form-control form-control-sm" placeholder="🔍 Cód. Obra..." onkeyup="filtrarColuna('pendencias', this.value)">
+                        <input type="text" id="buscaPendencias" class="form-control form-control-sm" placeholder="🔍 Cód. Obra..." onkeyup="aplicarFiltros('pendencias')">
+                        <input type="date" id="dataPendencias" class="form-control form-control-sm" onchange="aplicarFiltros('pendencias')" title="Filtrar por data">
                     </div>
                 </div>
                 <div class="kanban-body" id="coluna-pendencias">
                     {% for projeto in projetos %}
                         {% if projeto.status_manual != 'CONCLUÍDO' %}
-                        <div class="kanban-card card-pendencia" data-codigo="{{ projeto.codigo_obra }}">
+                        <div class="kanban-card card-pendencia" data-codigo="{{ projeto.codigo_obra }}" data-data="{{ projeto.data_declarada }}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <h6 class="fw-bold text-dark mb-0">#{{ projeto.codigo_obra }}</h6>
@@ -79,12 +80,15 @@
                         <span>🟢 CONCLUÍDOS</span>
                         <span class="badge bg-success rounded-pill fs-6 shadow-sm" id="count-concluidos">0</span>
                     </h6>
-                    <input type="text" id="buscaConcluidos" class="form-control form-control-sm" placeholder="🔍 Buscar obra concluída..." onkeyup="filtrarColuna('concluidos', this.value)">
+                    <div class="d-flex gap-2">
+                        <input type="text" id="buscaConcluidos" class="form-control form-control-sm" placeholder="🔍 Buscar obra..." onkeyup="aplicarFiltros('concluidos')">
+                        <input type="date" id="dataConcluidos" class="form-control form-control-sm" onchange="aplicarFiltros('concluidos')" title="Filtrar por data">
+                    </div>
                 </div>
                 <div class="kanban-body" id="coluna-concluidos">
                     {% for projeto in projetos %}
                         {% if projeto.status_manual == 'CONCLUÍDO' %}
-                        <div class="kanban-card card-concluido" data-codigo="{{ projeto.codigo_obra }}">
+                        <div class="kanban-card card-concluido" data-codigo="{{ projeto.codigo_obra }}" data-data="{{ projeto.data_declarada }}">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <h6 class="fw-bold text-dark mb-0">#{{ projeto.codigo_obra }}</h6>
@@ -212,6 +216,22 @@
         } catch(e) { alert("Erro ao priorizar."); }
     }
 
+    window.obrasCanceladas = window.obrasCanceladas || [];
+
+    async function cancelarDaFila(codigo) {
+        if (!confirm(`Deseja remover a obra #${codigo} da fila?`)) return;
+        try {
+            window.obrasCanceladas.push(codigo); // Marca como cancelada para não rodar animação verde
+            const res = await fetch(`/api/cancelar_fila/${codigo}`, { method: 'DELETE' });
+            const dados = await res.json();
+            if (dados.sucesso) {
+                await carregarFilaDoBanco();
+            } else {
+                alert("Falha ao deletar do banco de dados: " + dados.erro);
+            }
+        } catch (e) { alert("Erro de conexão ao cancelar obra."); }
+    }
+
     async function carregarFilaDoBanco() {
         try {
             const res = await fetch('/api/status_fila');
@@ -241,7 +261,10 @@
                                 <div class="small text-primary mb-2 fw-bold d-none detalhe-robo" id="detalhe-${info.codigo}" style="font-size: 0.75rem;">${info.erro || ''}</div>
                                 
                                 <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                                    <button onclick="enviarPrioridade('${info.codigo}')" class="btn btn-outline-warning btn-sm fw-bold px-2 py-0" title="Subir para o topo">⭐</button>
+                                    <div class="d-flex gap-1">
+                                        <button onclick="enviarPrioridade('${info.codigo}')" class="btn btn-outline-warning btn-sm fw-bold px-2 py-0" title="Subir para o topo">⭐</button>
+                                        <button onclick="cancelarDaFila('${info.codigo}')" class="btn btn-outline-danger btn-sm fw-bold px-2 py-0" title="Cancelar Obra">❌</button>
+                                    </div>
                                     <a href="/?codigo=${info.codigo}&nome=${encodeURIComponent(info.nome || '')}" class="btn btn-outline-secondary btn-sm fw-bold px-2 py-0">Fazer Manual</a>
                                 </div>
                             </div>
@@ -280,10 +303,21 @@
         document.getElementById('count-fila').innerText = document.querySelectorAll('#listaRunrunit .kanban-card').length;
     }
 
-    function filtrarColuna(colunaId, texto) {
-        const busca = texto.toUpperCase();
+    function aplicarFiltros(colunaId) {
+        let textoId = colunaId === 'pendencias' ? 'buscaPendencias' : 'buscaConcluidos';
+        let dataId = colunaId === 'pendencias' ? 'dataPendencias' : 'dataConcluidos';
+        
+        let texto = document.getElementById(textoId).value.toUpperCase();
+        let dataFiltro = document.getElementById(dataId).value; 
+        
         document.querySelectorAll(`#coluna-${colunaId} .kanban-card`).forEach(card => {
-            card.style.display = card.getAttribute('data-codigo').toUpperCase().includes(busca) ? "" : "none";
+            let codigoCard = card.getAttribute('data-codigo').toUpperCase();
+            let dataCard = card.getAttribute('data-data');
+            
+            let matchTexto = codigoCard.includes(texto);
+            let matchData = dataFiltro ? (dataCard === dataFiltro) : true;
+            
+            card.style.display = (matchTexto && matchData) ? "" : "none";
         });
         atualizarContadores();
     }
@@ -371,6 +405,12 @@
                     const infoNoBanco = dados.fila.find(i => i.codigo === codigo);
                     
                     if (!infoNoBanco && !card.classList.contains('animando-saida')) {
+                        // Se sumiu porque o usuário clicou em cancelar, só recarrega silenciosamente
+                        if (window.obrasCanceladas && window.obrasCanceladas.includes(codigo)) {
+                            card.style.display = 'none';
+                            return;
+                        }
+
                         card.classList.add('animando-saida');
                         card.style.borderLeftColor = "#198754";
                         card.style.backgroundColor = "#f8fff9";

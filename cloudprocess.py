@@ -93,7 +93,7 @@ def processar_obra(tarefa, motor):
 
     projeto = Projeto.query.filter_by(codigo_obra=codigo).first()
     if not projeto:
-        projeto = Projeto(codigo_obra=codigo, nome_obra=tarefa.nome_obra, status_global='PENDENTE')
+        projeto = Projeto(codigo_obra=codigo, nome_obra=tarefa.nome_obra, status_global='PENDENTE', data_limite=tarefa.data_limite_runrunit)
         db.session.add(projeto)
         db.session.flush()
 
@@ -132,6 +132,14 @@ def processar_obra(tarefa, motor):
 
 def iniciar_worker():
     log_robo("☁️ CloudProcess Iniciado! Preparando ignição...")
+    
+    with app.app_context():
+        # Limpa os "fantasmas" que ficaram presos como PROCESSANDO quando o app foi fechado abruptamente
+        tarefas_fantasmas = FilaProcessamento.query.filter_by(status_fila='PROCESSANDO').all()
+        for t in tarefas_fantasmas:
+            t.status_fila = 'ERRO'
+            t.log_erro = 'Processamento interrompido (Servidor foi reiniciado).'
+        db.session.commit()
     
     motor = MotorGPM(GPM_USUARIO, GPM_SENHA, "", DOWNLOADS_GPM, log_robo)
     if not motor.autenticar():

@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import uuid
+from flask_login import UserMixin
 
 # Instancia o banco de dados
 db = SQLAlchemy()
@@ -99,3 +100,14 @@ class ConfiguracaoSistema(db.Model):
     
     chave = db.Column(db.String(50), primary_key=True) # Ex: 'status_robo'
     valor = db.Column(db.String(50)) # Ex: 'RODANDO' ou 'PAUSADO'
+
+# ==========================================
+# 6. USUÁRIOS E AUTENTICAÇÃO
+# ==========================================
+class Usuario(UserMixin, db.Model):
+    __tablename__ = 'usuarios'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.now)

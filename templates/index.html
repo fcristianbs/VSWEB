@@ -134,7 +134,7 @@
 
     <div class="secao-container">
         <div class="secao-header bg-info bg-opacity-10 border border-info border-bottom-0">
-            <h5 class="text-info text-dark fw-bold mb-0">🩵 Entrega de Trabalho</h5>
+            <h5 class="text-info text-dark fw-bold mb-0">Entrega de Trabalho</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-info fw-bold text-dark section-status" style="width: 30%;" data-section="ENTREGA" onchange="verificarStatusGlobal()">
                     <option value="pendente" selected>🟡 Pendente</option>
@@ -151,7 +151,7 @@
 
     <div class="secao-container">
         <div class="secao-header bg-dark bg-opacity-10 border border-dark border-bottom-0">
-            <h5 class="text-dark fw-bold mb-0">🖤 Plano de Trabalho (Rede Desenergizada)</h5>
+            <h5 class="text-dark fw-bold mb-0">Plano de Trabalho (Rede Desenergizada)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-dark fw-bold text-dark section-status" style="width: 30%;" data-section="PLANO" onchange="verificarStatusGlobal()">
                     <option value="pendente" selected>🟡 Pendente</option>
@@ -185,7 +185,7 @@
 
     <div class="secao-container">
         <div class="secao-header bg-danger bg-opacity-10 border border-danger border-bottom-0">
-            <h5 class="text-danger fw-bold mb-0">❤️ Autorização de Trabalho (Energizada)</h5>
+            <h5 class="text-danger fw-bold mb-0">Autorização de Trabalho (Energizada)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-danger fw-bold text-dark section-status" style="width: 30%;" data-section="AUTORIZAÇÃO" onchange="verificarStatusGlobal()">
                     <option value="pendente" selected>🟡 Pendente</option>
@@ -519,10 +519,10 @@
                 <select class="form-select form-select-sm fw-bold border-secondary text-center shadow-none w-50" onchange="mudarCategoria('${img.id}', this.value)" style="font-size: 0.65rem; cursor: pointer; padding: 0.2rem;">
                     <option value="APR" ${img.tipo === 'APR' ? 'selected' : ''}>🟢 APR</option>
                     <option value="PI" ${img.tipo === 'PI' ? 'selected' : ''}>🟡 PI</option>
-                    <option value="ENTREGA" ${img.tipo === 'ENTREGA' ? 'selected' : ''}>🩵 ENTREGA</option>
-                    <option value="PLANO AT/MT" ${img.tipo === 'PLANO AT/MT' ? 'selected' : ''}>🖤 PLANO</option>
-                    <option value="PROJETO" ${img.tipo === 'PROJETO' ? 'selected' : ''}>💜 PROJETO</option>
-                    <option value="AUTORIZAÇÃO" ${img.tipo === 'AUTORIZAÇÃO' ? 'selected' : ''}>❤️ AUTORIZ.</option>
+                    <option value="ENTREGA" ${img.tipo === 'ENTREGA' ? 'selected' : ''}>ENTREGA</option>
+                    <option value="PLANO AT/MT" ${img.tipo === 'PLANO AT/MT' ? 'selected' : ''}>PLANO</option>
+                    <option value="PROJETO" ${img.tipo === 'PROJETO' ? 'selected' : ''}>PROJETO</option>
+                    <option value="AUTORIZAÇÃO" ${img.tipo === 'AUTORIZAÇÃO' ? 'selected' : ''}>AUTORIZ.</option>
                     <option value="DOCUMENTO" ${img.tipo === 'DOCUMENTO' ? 'selected' : ''}>🔵 DOC.</option>
                     <option value="FOTOS" ${img.tipo === 'FOTOS' ? 'selected' : ''}>📸 FOTO</option>
                 </select>
