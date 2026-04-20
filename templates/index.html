@@ -103,8 +103,8 @@
             <h5 class="text-success fw-bold mb-0">🟢 APRs (Análise Preliminar de Risco)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-success fw-bold text-dark section-status" style="width: 30%;" data-section="APR" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-success section-obs" data-section="APR" placeholder="📝 Adicionar observação / nota para APRs...">
@@ -120,8 +120,8 @@
             <h5 class="text-warning text-dark fw-bold mb-0">🟡 PIs (Plano de Intervenção)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-warning fw-bold text-dark section-status" style="width: 30%;" data-section="PI" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-warning section-obs" data-section="PI" placeholder="📝 Adicionar observação / nota para PIs...">
@@ -137,8 +137,8 @@
             <h5 class="text-info text-dark fw-bold mb-0">Entrega de Trabalho</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-info fw-bold text-dark section-status" style="width: 30%;" data-section="ENTREGA" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-info section-obs" data-section="ENTREGA" placeholder="📝 Adicionar observação...">
@@ -154,8 +154,8 @@
             <h5 class="text-dark fw-bold mb-0">Plano de Trabalho (Rede Desenergizada)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-dark fw-bold text-dark section-status" style="width: 30%;" data-section="PLANO" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-dark section-obs" data-section="PLANO" placeholder="📝 Adicionar observação...">
@@ -171,8 +171,8 @@
             <h5 class="text-red fw-bold mb-0"> Projeto de Obra / Eletrificação</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-projeto fw-bold text-dark section-status" style="width: 30%; border-color: #6f42c1;" data-section="PROJETO" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-projeto section-obs" style="border-color: #6f42c1;" data-section="PROJETO" placeholder="📝 Adicionar observação...">
@@ -188,8 +188,8 @@
             <h5 class="text-danger fw-bold mb-0">Autorização de Trabalho (Energizada)</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-danger fw-bold text-dark section-status" style="width: 30%;" data-section="AUTORIZAÇÃO" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-danger section-obs" data-section="AUTORIZAÇÃO" placeholder="📝 Adicionar observação...">
@@ -205,8 +205,8 @@
             <h5 class="text-primary fw-bold mb-0">🔵 Outros Documentos</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-primary fw-bold text-dark section-status" style="width: 30%;" data-section="DOCUMENTO" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-primary section-obs" data-section="DOCUMENTO" placeholder="📝 Adicionar observação...">
@@ -222,8 +222,8 @@
             <h5 class="text-secondary fw-bold mb-0">📸 Fotos de Campo & Fila IA</h5>
             <div class="d-flex gap-2 w-50">
                 <select class="form-select form-select-sm border-secondary fw-bold text-dark section-status" style="width: 30%;" data-section="FOTOS" onchange="verificarStatusGlobal()">
-                    <option value="pendente" selected>🟡 Pendente</option>
-                    <option value="analise">🔵 Em Análise</option>
+                    <option value="pendente">🟡 Pendente</option>
+                    <option value="analise" selected>🔵 Em Análise</option>
                     <option value="ok">🟢 Tudo OK</option>
                 </select>
                 <input type="text" class="form-control form-control-sm border-secondary section-obs" data-section="FOTOS" placeholder="📝 Observação para Fotos...">
