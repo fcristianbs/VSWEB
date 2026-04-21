@@ -30,7 +30,9 @@
 <nav class="navbar-custom">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <h4 class="mb-0 fw-bold">📊 Gestão de Obras - COSAMPA</h4>
-        <a href="/" class="btn btn-success btn-sm fw-bold px-4 shadow-sm">📤 NOVO PROCESSO MANUAL</a>
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-success btn-sm fw-bold px-4 shadow-sm">📤 NOVO PROCESSO MANUAL</a>
+        </div>
     </div>
 </nav>
 
@@ -62,6 +64,7 @@
                             {% if projeto.nome_obra %}
                                 <p class="small text-secondary mb-2 lh-sm fw-semibold">{{ projeto.nome_obra }}</p>
                             {% endif %}
+                            <div class="small text-muted mb-2 border rounded bg-light p-1 text-center"><small>📅 <strong>Data (Runrun.it):</strong> {{ projeto.data_exibicao }}</small></div>
                             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                                 <span class="badge bg-light text-dark border">{{ projeto.documentos|length }} docs</span>
                                 <a href="/?id={{ projeto.id }}" class="btn btn-primary btn-sm fw-bold px-3">Abrir / Editar</a>
@@ -98,6 +101,7 @@
                             {% if projeto.nome_obra %}
                                 <p class="small text-secondary mb-2 lh-sm fw-semibold">{{ projeto.nome_obra }}</p>
                             {% endif %}
+                            <div class="small text-muted mb-2 border rounded bg-light p-1 text-center"><small>📅 <strong>Data (Runrun.it):</strong> {{ projeto.data_exibicao }}</small></div>
                             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                                 <a href="/?id={{ projeto.id }}" class="btn btn-outline-success btn-sm fw-bold">Visualizar</a>
                                 <button class="btn btn-outline-danger btn-sm p-1" onclick="deletarProjeto('{{ projeto.id }}')" title="Excluir Arquivos Locais">🗑️</button>
@@ -126,12 +130,7 @@
                     </div>
 
                     <div class="d-flex flex-column gap-2 mt-2">
-                        <div class="input-group input-group-sm shadow-sm">
-                            <span class="input-group-text bg-white fw-bold">Até:</span>
-                            <input type="date" id="dataLimiteRunrunit" class="form-control" title="Coletar obras a partir de qual data?">
-                            <button onclick="sincronizarRunrunit()" class="btn btn-info fw-bold text-dark px-3" id="btnSync" title="Buscar no Runrun.it">📡 Buscar</button>
-                            <button onclick="limparFila()" class="btn btn-outline-danger px-2" id="btnLimpar" title="Limpar fila de espera">🗑️</button>
-                        </div>
+                        <!-- Botões de administração removidos da visão geral -->
                     </div>
                 </div>
                 <div class="kanban-body" id="listaRunrunit">
@@ -149,13 +148,6 @@
     window.addEventListener('DOMContentLoaded', async () => {
         // Carrega estado do Robô Real
         await checarStatusRobo();
-
-        const dataSalva = localStorage.getItem('dataFilaCosampa');
-        if(dataSalva) document.getElementById('dataLimiteRunrunit').value = dataSalva;
-
-        document.getElementById('dataLimiteRunrunit').addEventListener('change', function() {
-            localStorage.setItem('dataFilaCosampa', this.value);
-        });
 
         await carregarFilaDoBanco();
         atualizarContadores();

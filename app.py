@@ -28,11 +28,20 @@ for pasta in [UPLOAD_FOLDER, DOWNLOADS_GPM, DRIVE_FOLDER]:
 
 db.init_app(app)
 with app.app_context():
+    # Aumentamos o timeout para evitar "Database is Locked" e ativamos modo WAL
     db.create_all()
+    from sqlalchemy import event
+    @event.listens_for(db.engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=5000") # 5 segundos de espera
+        cursor.close()
 
 # Registrar Blueprints
 app.register_blueprint(web_bp)
 app.register_blueprint(api_bp)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False, threaded=True)

@@ -184,10 +184,30 @@ class MotorGPM:
             nome_zip_lote = f"temp_lote_{idx}_{obra}.zip"
             caminho_lote = os.path.join(self.diretorio, nome_zip_lote)
             
-            with requests.post(url_down, cookies=self.cookies, headers=headers_download, stream=True, timeout=60) as resp_down:
+            with requests.post(url_down, cookies=self.cookies, headers=headers_download, stream=True, timeout=120) as resp_down:
+                if resp_down.status_code != 200:
+                    raise ValueError(f"GPM negou o download (Erro {resp_down.status_code}).")
+                
+                # Verifica se o arquivo baixado é um ZIP válido ou erro HTML
                 with open(caminho_lote, "wb") as f:
                     for chunk in resp_down.iter_content(chunk_size=8192):
                         if chunk: f.write(chunk)
+            
+            if not zipfile.is_zipfile(caminho_lote):
+                tamanho = os.path.getsize(caminho_lote)
+                # Tenta ler o conteúdo para ver se é um erro em texto/JSON
+                try:
+                    with open(caminho_lote, "r", encoding="utf-8", errors="ignore") as f_err:
+                        conteudo_erro = f_err.read(100)
+                except:
+                    conteudo_erro = "Não foi possível ler o conteúdo."
+                
+                if os.path.exists(caminho_lote): os.remove(caminho_lote)
+                
+                if "login" in conteudo_erro.lower():
+                    raise ValueError("SESSAO_EXPIRADA")
+                
+                raise ValueError(f"GPM retornou erro ({tamanho} bytes): {conteudo_erro}")
                         
             zips_baixados.append(caminho_lote)
             time.sleep(1) 

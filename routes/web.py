@@ -23,7 +23,12 @@ def drive():
             'data_criacao': p.data_criacao,
             'data_ultima_edicao': getattr(p, 'data_ultima_edicao', p.data_criacao),
             'data_declarada': data_dec.strftime('%Y-%m-%d'),
+            'data_exibicao': data_dec.strftime('%d/%m/%Y'),
             'documentos': p.documentos
         })
         
     return render_template('drive.html', projetos=projetos_lista)
+
+@web_bp.route('/admin')
+def admin():
+    return render_template('admin.html')

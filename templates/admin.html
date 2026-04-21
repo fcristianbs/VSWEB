@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Scanner COSAMPA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --accent-color: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: var(--card-bg);
+            border-right: 1px solid #334155;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+        .chart-container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            height: 400px;
+        }
+        .log-container {
+            background-color: #000;
+            border-radius: 12px;
+            padding: 1rem;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #334155;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+            border-left: 3px solid transparent;
+            padding-left: 8px;
+        }
+        .log-time { color: #64748b; margin-right: 10px; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #10b981; border-left-color: #10b981; }
+        .log-warning { color: #f59e0b; border-left-color: #f59e0b; }
+        .log-error { color: #ef4444; border-left-color: #ef4444; }
+        
+        .btn-premium {
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-premium:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+            color: white;
+        }
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #334155;
+            z-index: 1000;
+        }
+        .badge-status {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar glass-nav sticky-top py-3">
+    <div class="container-fluid px-4">
+        <h4 class="mb-0 fw-bold d-flex align-items-center gap-3">
+            <span style="color: var(--accent-color)">💎</span> Painel Administrativo COSAMPA
+        </h4>
+        <div class="d-flex gap-3">
+            <a href="/drive" class="btn btn-outline-light btn-sm px-4">📁 Voltar ao Drive</a>
+            <button onclick="toggleRobo()" id="btnStatusRobo" class="btn btn-danger btn-sm px-4">Pausar Robô</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid p-4">
+    <div class="row g-4">
+        <!-- Estatísticas Rápidas -->
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-secondary small fw-bold mb-1">TOTAL DE OBRAS</p>
+                <h2 class="fw-bold mb-0" id="stat-total">0</h2>
+                <div class="mt-2 small text-success">↑ Crescimento constante</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-secondary small fw-bold mb-1">NA FILA DE ESPERA</p>
+                <h2 class="fw-bold mb-0" id="stat-fila">0</h2>
+                <div class="mt-2 small text-info">Processamento em dia</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p class="text-secondary small fw-bold mb-1">STATUS DO ROBÔ</p>
+                <h2 class="fw-bold mb-0" id="stat-robo">ATIVO</h2>
+                <div class="mt-2 small text-warning" id="stat-processando">Aguardando...</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card h-100 d-flex flex-column justify-content-center gap-2">
+                <button onclick="triggerMining()" class="btn btn-premium w-100">📡 Forçar Mineração</button>
+                <button onclick="alert('Limpeza iniciada!')" class="btn btn-outline-secondary w-100 btn-sm">🧹 Forçar Limpeza 90 dias</button>
+            </div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="col-lg-8">
+            <div class="chart-container shadow-lg">
+                <h6 class="fw-bold mb-4">Volume de Coleta de Dados (Últimos 30 dias)</h6>
+                <canvas id="coletaChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Logs em Tempo Real -->
+        <div class="col-lg-4">
+            <div class="chart-container shadow-lg d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="fw-bold mb-0">System Logs (Live)</h6>
+                    <button class="btn btn-link btn-sm text-secondary p-0" onclick="carregarLogs()">Atualizar</button>
+                </div>
+                <div class="log-container flex-grow-1" id="log-window">
+                    <!-- Logs via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart = null;
+
+    async function initDashboard() {
+        await carregarStats();
+        await carregarLogs();
+        await checarStatusRobo();
+        
+        // Auto-refresh a cada 10 segundos
+        setInterval(() => {
+            carregarStats();
+            carregarLogs();
+        }, 10000);
+    }
+
+    let lastChartData = null;
+
+    async function carregarStats() {
+        try {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+            
+            if (data.sucesso) {
+                document.getElementById('stat-total').innerText = data.total;
+                document.getElementById('stat-fila').innerText = data.na_fila;
+                document.getElementById('stat-processando').innerText = data.processando_agora ? `Processando: #${data.processando_agora}` : 'Robô em repouso';
+                
+                // Só atualiza o gráfico se os valores mudarem (evita o "flicker" visual)
+                const currentDataStr = JSON.stringify({labels: data.labels, valores: data.valores});
+                if (currentDataStr !== lastChartData) {
+                    renderChart(data.labels, data.valores);
+                    lastChartData = currentDataStr;
+                }
+            }
+        } catch (e) { console.error("Erro ao carregar stats", e); }
+    }
+
+    function renderChart(labels, valores) {
+        const ctx = document.getElementById('coletaChart').getContext('2d');
+        
+        if (myChart) myChart.destroy();
+        
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(l => l.split('-').reverse().slice(0,2).join('/')),
+                datasets: [{
+                    label: 'Obras Coletadas',
+                    data: valores,
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#38bdf8'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
+        });
+    }
+
+    async function carregarLogs() {
+        try {
+            const res = await fetch('/api/admin/logs');
+            const data = await res.json();
+            
+            if (data.sucesso) {
+                const logWindow = document.getElementById('log-window');
+                logWindow.innerHTML = '';
+                
+                data.logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = `log-entry log-${log.nivel.toLowerCase()}`;
+                    div.innerHTML = `<span class="log-time">[${log.data}]</span> <span>${log.mensagem}</span>`;
+                    logWindow.appendChild(div);
+                });
+            }
+        } catch (e) {}
+    }
+
+    async function checarStatusRobo() {
+        try {
+            const res = await fetch('/api/status_robo');
+            const data = await res.json();
+            const btn = document.getElementById('btnStatusRobo');
+            const stat = document.getElementById('stat-robo');
+            
+            if (data.status === 'PAUSADO') {
+                btn.innerText = "Retomar Robô";
+                btn.className = "btn btn-success btn-sm px-4";
+                stat.innerText = "PAUSADO";
+                stat.className = "fw-bold mb-0 text-danger";
+            } else {
+                btn.innerText = "Pausar Robô";
+                btn.className = "btn btn-danger btn-sm px-4";
+                stat.innerText = "ATIVO";
+                stat.className = "fw-bold mb-0 text-success";
+            }
+        } catch (e) {}
+    }
+
+    async function toggleRobo() {
+        await fetch('/api/toggle_robo', { method: 'POST' });
+        checarStatusRobo();
+    }
+
+    async function triggerMining() {
+        const res = await fetch('/api/admin/trigger_mining', { method: 'POST' });
+        const data = await res.json();
+        alert(data.msg);
+    }
+
+    window.onload = initDashboard;
+</script>
+
+</body>
+</html>

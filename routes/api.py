@@ -6,7 +6,7 @@ from uuid import uuid4
 from PIL import Image
 import processador 
 from automacao import MotorGPM
-from models import db, Projeto, SecaoProjeto, Documento, FilaProcessamento, ConfiguracaoSistema 
+from models import db, Projeto, SecaoProjeto, Documento, FilaProcessamento, ConfiguracaoSistema, LogSistema
 from extensions import db_imagens, pdfs_gerados, log_queue
 
 api_bp = Blueprint('api', __name__)
@@ -428,7 +428,8 @@ def adicionar_fila():
                 codigo_obra=obra['codigo'],
                 nome_obra=obra['titulo_completo'],
                 status_fila='AGUARDANDO',
-                data_limite_runrunit=data_limite_val
+                data_limite_runrunit=data_limite_val,
+                data_obra=data_limite_val # Usamos a data da tarefa como data da obra
             )
             db.session.add(nova_tarefa)
             adicionadas += 1
@@ -438,12 +439,15 @@ def adicionar_fila():
 
 @api_bp.route('/api/status_fila', methods=['GET'])
 def status_fila():
-    tarefas = FilaProcessamento.query.filter(FilaProcessamento.status_fila != 'SUCESSO').all()
+    # FILTRO: Agora só mostramos na aba Drive o que é PRIORIDADE (ano 2000) ou o que está PROCESSANDO
+    tarefas = FilaProcessamento.query.filter(
+        FilaProcessamento.status_fila != 'SUCESSO'
+    ).all()
     
-    # ORDENAÇÃO INTELIGENTE NO SERVIDOR:
-    # 1º PROCESSANDO fica no topo sempre (peso 0)
-    # 2º Data de adição (ano 2000 vem primeiro, que é o nosso truque de prioridade)
-    tarefas_ordenadas = sorted(tarefas, key=lambda t: (0 if t.status_fila == 'PROCESSANDO' else 1, t.data_adicao))
+    # Filtro manual para manter apenas as prioridades ou o item atual
+    tarefas_visiveis = [t for t in tarefas if t.data_adicao.year == 2000 or t.status_fila == 'PROCESSANDO']
+    
+    tarefas_ordenadas = sorted(tarefas_visiveis, key=lambda t: (0 if t.status_fila == 'PROCESSANDO' else 1, t.data_adicao))
     
     lista_fila = []
     for t in tarefas_ordenadas:
@@ -521,3 +525,72 @@ def toggle_robo():
         config.valor = 'RODANDO' if config.valor == 'PAUSADO' else 'PAUSADO'
     db.session.commit()
     return jsonify({'sucesso': True, 'status': config.valor})
+
+# ==========================================
+# NOVAS ROTAS ADMIN: ESTATÍSTICAS E LOGS
+# ==========================================
+
+@api_bp.route('/api/admin/stats')
+def admin_stats():
+    """Retorna dados para o gráfico Data vs Quantidade"""
+    try:
+        # Pega os últimos 30 dias de processamento com sucesso
+        hoje = datetime.now()
+        trinta_dias_atras = hoje - timedelta(days=30)
+        
+        # Agrupamento manual via Python para simplicidade no SQLite
+        projetos = Projeto.query.filter(Projeto.data_criacao >= trinta_dias_atras).all()
+        stats = {}
+        
+        for p in projetos:
+            data_str = p.data_criacao.strftime('%Y-%m-%d')
+            stats[data_str] = stats.get(data_str, 0) + 1
+            
+        # Ordena as chaves
+        labels = sorted(stats.keys())
+        valores = [stats[l] for l in labels]
+        
+        # Contadores gerais
+        total_projetos = Projeto.query.count()
+        na_fila = FilaProcessamento.query.filter(FilaProcessamento.status_fila == 'AGUARDANDO').count()
+        processando = FilaProcessamento.query.filter(FilaProcessamento.status_fila == 'PROCESSANDO').first()
+        
+        return jsonify({
+            'sucesso': True,
+            'labels': labels,
+            'valores': valores,
+            'total': total_projetos,
+            'na_fila': na_fila,
+            'processando_agora': processando.codigo_obra if processando else None
+        })
+    except Exception as e:
+        return jsonify({'sucesso': False, 'erro': str(e)}), 500
+
+@api_bp.route('/api/admin/logs')
+def admin_logs():
+    """Retorna os últimos logs do sistema"""
+    try:
+        logs = LogSistema.query.order_by(LogSistema.data_evento.desc()).limit(100).all()
+        return jsonify({
+            'sucesso': True,
+            'logs': [{
+                'mensagem': l.mensagem,
+                'nivel': l.nivel,
+                'data': l.data_evento.strftime('%H:%M:%S')
+            } for l in logs]
+        })
+    except Exception as e:
+        return jsonify({'sucesso': False, 'erro': str(e)}), 500
+
+@api_bp.route('/api/admin/trigger_mining', methods=['POST'])
+def trigger_mining():
+    """Gatilho para forçar a mineração manual via cloudprocess"""
+    config = ConfiguracaoSistema.query.filter_by(chave='forcar_mineracao').first()
+    if not config:
+        config = ConfiguracaoSistema(chave='forcar_mineracao', valor='SIM')
+        db.session.add(config)
+    else:
+        config.valor = 'SIM'
+    
+    db.session.commit()
+    return jsonify({'sucesso': True, 'msg': 'Mineração solicitada ao robô!'})

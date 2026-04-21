@@ -22,8 +22,9 @@ class Projeto(db.Model):
     # STATUS GLOBAL (PENDENTE ou CONCLUÍDO)
     status_global = db.Column(db.String(20), default='PENDENTE') 
     
-    # Data limite para o Kanban
+    # Data limite para o Kanban e Data Real da Obra
     data_limite = db.Column(db.Date, nullable=True) 
+    data_obra = db.Column(db.Date, nullable=True) # Data da execução (Runrun.it)
     
     data_criacao = db.Column(db.DateTime, default=datetime.now)
     data_ultima_edicao = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -83,9 +84,12 @@ class FilaProcessamento(db.Model):
     nome_obra = db.Column(db.String(200), nullable=True)
     
     data_limite_runrunit = db.Column(db.Date, nullable=True) 
+    data_obra = db.Column(db.Date, nullable=True) # Data da execução (Runrun.it)
     
     # Controle do Robô
     status_fila = db.Column(db.String(20), default='AGUARDANDO') # AGUARDANDO, PROCESSANDO, ERRO, SUCESSO
+    etapa = db.Column(db.String(50), nullable=True) # BAIXANDO, EXTRAINDO, PROCESSANDO_IA
+    dados_checkpoint = db.Column(db.Text, nullable=True) # JSON ou string com progresso (ex: "15/42")
     log_erro = db.Column(db.Text, nullable=True)
     
     data_adicao = db.Column(db.DateTime, default=datetime.now)
@@ -99,3 +103,15 @@ class ConfiguracaoSistema(db.Model):
     
     chave = db.Column(db.String(50), primary_key=True) # Ex: 'status_robo'
     valor = db.Column(db.String(50)) # Ex: 'RODANDO' ou 'PAUSADO'
+
+
+# ==========================================
+# 6. LOGS DO SISTEMA (Para o Painel Admin)
+# ==========================================
+class LogSistema(db.Model):
+    __tablename__ = 'logs_sistema'
+    
+    id = db.Column(db.String(36), primary_key=True, default=gerar_uuid)
+    mensagem = db.Column(db.Text, nullable=False)
+    nivel = db.Column(db.String(20), default='INFO') # INFO, WARNING, ERROR, SUCESSO
+    data_evento = db.Column(db.DateTime, default=datetime.now)
