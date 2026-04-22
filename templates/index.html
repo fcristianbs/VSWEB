@@ -376,7 +376,12 @@
 
     function abrirAjuste(id) {
         idEditando = id; modoCorte = false; pontos = []; resetarView();
-        const urlProc = document.querySelector(`#card-${id} img`).src.split('?')[0];
+        const card = document.getElementById(`card-${id}`);
+        if (!card) return console.error("Card não encontrado:", id);
+        const img = card.querySelector('img');
+        if (!img) return console.error("Imagem não encontrada no card:", id);
+
+        const urlProc = img.src.split('?')[0];
         carregar(urlProc);
         btnModo.innerText = "✂️ REAJUSTAR CORTE (MOSTRAR ORIGINAL)";
         btnModo.className = "btn btn-warning btn-sm fw-bold";
@@ -392,7 +397,11 @@
 
     function toggleModoOriginal() {
         modoCorte = !modoCorte;
-        const imgElem = document.querySelector(`#card-${idEditando} img`);
+        const card = document.getElementById(`card-${idEditando}`);
+        if (!card) return;
+        const imgElem = card.querySelector('img');
+        if (!imgElem) return;
+
         const urlProc = imgElem.src.split('?')[0];
         
         if(modoCorte) {
@@ -420,7 +429,11 @@
             const res = await fetch('/reajustar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id:idEditando, pontos})});
             const d = await res.json();
             if(d.sucesso) { 
-                document.querySelector(`#card-${idEditando} img`).src = d.url + "?v=" + new Date().getTime(); 
+                const card = document.getElementById(`card-${idEditando}`);
+                if (card) {
+                    const img = card.querySelector('img');
+                    if (img) img.src = d.url + "?v=" + new Date().getTime(); 
+                }
                 modal.hide(); 
             }
         }
@@ -435,7 +448,11 @@
             const d = await res.json();
             if(d.sucesso) {
                 const newUrl = d.url + "?v=" + new Date().getTime();
-                document.querySelector(`#card-${id} img`).src = newUrl;
+                const card = document.getElementById(`card-${id}`);
+                if (card) {
+                    const img = card.querySelector('img');
+                    if (img) img.src = newUrl;
+                }
                 if (idEditando === id) { carregar(newUrl); }
             }
         } catch(e) { console.error("Erro ao girar", e); } 
