@@ -439,15 +439,24 @@ def adicionar_fila():
 
 @api_bp.route('/api/status_fila', methods=['GET'])
 def status_fila():
-    # FILTRO: Agora só mostramos na aba Drive o que é PRIORIDADE (ano 2000) ou o que está PROCESSANDO
+    # FILTRO: Agora mostramos o que é PRIORIDADE, o que está PROCESSANDO ou o que entrou nos últimos 3 meses
+    limite_data = datetime.now() - timedelta(days=90)
+    
     tarefas = FilaProcessamento.query.filter(
         FilaProcessamento.status_fila != 'SUCESSO'
     ).all()
     
-    # Filtro manual para manter apenas as prioridades ou o item atual
-    tarefas_visiveis = [t for t in tarefas if t.data_adicao.year == 2000 or t.status_fila == 'PROCESSANDO']
+    # Mantém prioridades, itens processando agora ou itens recentes (90 dias)
+    tarefas_visiveis = [
+        t for t in tarefas 
+        if t.data_adicao.year == 2000 or t.status_fila == 'PROCESSANDO' or t.data_adicao >= limite_data
+    ]
     
-    tarefas_ordenadas = sorted(tarefas_visiveis, key=lambda t: (0 if t.status_fila == 'PROCESSANDO' else 1, t.data_adicao))
+    # Ordenação: Processando primeiro, depois Prioridade, depois Data de Adição
+    tarefas_ordenadas = sorted(
+        tarefas_visiveis, 
+        key=lambda t: (0 if t.status_fila == 'PROCESSANDO' else (1 if t.data_adicao.year == 2000 else 2), t.data_adicao)
+    )
     
     lista_fila = []
     for t in tarefas_ordenadas:
@@ -456,7 +465,8 @@ def status_fila():
             'status': t.status_fila,
             'erro': t.log_erro,
             'nome': t.nome_obra,
-            'is_prioridade': t.data_adicao.year == 2000 # Avisa o HTML se foi priorizado
+            'data_limite': t.data_limite_runrunit.strftime('%d/%m/%Y') if t.data_limite_runrunit else '--',
+            'is_prioridade': t.data_adicao.year == 2000 
         })
         
     return jsonify({'sucesso': True, 'fila': lista_fila})

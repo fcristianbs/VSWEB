@@ -7,7 +7,7 @@ import time
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('C:\\Temp\\VSWEB\\VSWEB\\.env.example')
 # --- CONFIGURAÇÃO DA API ---
 CHAVE_API_GEMINI = os.getenv("CHAVE_API_GEMINI") 
 

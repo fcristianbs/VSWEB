@@ -93,6 +93,49 @@
             padding: 0.4rem 0.8rem;
             border-radius: 50px;
         }
+        .table-premium {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        .table-premium thead th {
+            border: none;
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+        }
+        .table-premium tbody tr {
+            background-color: rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
+        }
+        .table-premium tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.07);
+            transform: scale(1.005);
+        }
+        .table-premium td {
+            border: none;
+            padding: 1rem;
+            vertical-align: middle;
+        }
+        .table-premium td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+        .table-premium td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        
+        .scroll-custom::-webkit-scrollbar { width: 6px; }
+        .scroll-custom::-webkit-scrollbar-track { background: transparent; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .scroll-custom::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -155,8 +198,40 @@
                     <h6 class="fw-bold mb-0">System Logs (Live)</h6>
                     <button class="btn btn-link btn-sm text-secondary p-0" onclick="carregarLogs()">Atualizar</button>
                 </div>
-                <div class="log-container flex-grow-1" id="log-window">
+                <div class="log-container flex-grow-1 scroll-custom" id="log-window">
                     <!-- Logs via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Processamento -->
+        <div class="col-12">
+            <div class="chart-container shadow-lg d-flex flex-column" style="height: auto; max-height: 600px;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="fw-bold mb-0">Fila de Processamento Automático</h6>
+                    <div class="d-flex gap-2">
+                        <button onclick="carregarFila()" class="btn btn-outline-secondary btn-sm">🔄 Atualizar Fila</button>
+                        <button onclick="limparFila()" class="btn btn-outline-danger btn-sm">🧹 Limpar Fila</button>
+                    </div>
+                </div>
+                <div class="table-responsive scroll-custom" style="overflow-y: auto;">
+                    <table class="table table-premium mb-0">
+                        <thead>
+                            <tr>
+                                <th>CÓDIGO / OBRA</th>
+                                <th>STATUS</th>
+                                <th>LIMITE RUNRUN.IT</th>
+                                <th class="text-end">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fila-corpo">
+                            <!-- Carregado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="fila-vazia" class="text-center py-5 d-none">
+                    <div class="display-1 opacity-10 mb-3">📭</div>
+                    <p class="text-secondary">Nenhuma obra na fila de processamento no momento.</p>
                 </div>
             </div>
         </div>
@@ -169,12 +244,14 @@
     async function initDashboard() {
         await carregarStats();
         await carregarLogs();
+        await carregarFila();
         await checarStatusRobo();
         
         // Auto-refresh a cada 10 segundos
         setInterval(() => {
             carregarStats();
             carregarLogs();
+            carregarFila();
         }, 10000);
     }
 
@@ -258,6 +335,85 @@
                     logWindow.appendChild(div);
                 });
             }
+        } catch (e) {}
+    }
+
+    async function carregarFila() {
+        try {
+            const res = await fetch('/api/status_fila?admin=true');
+            const data = await res.json();
+            
+            if (data.sucesso) {
+                const corpo = document.getElementById('fila-corpo');
+                const vazia = document.getElementById('fila-vazia');
+                corpo.innerHTML = '';
+                
+                if (data.fila.length === 0) {
+                    vazia.classList.remove('d-none');
+                    return;
+                }
+                vazia.classList.add('d-none');
+                
+                data.fila.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    let statusHtml = '';
+                    if (item.status === 'PROCESSANDO') {
+                        statusHtml = '<span class="badge bg-primary pulse-animation">Processando...</span>';
+                    } else if (item.status === 'ERRO') {
+                        statusHtml = `<span class="badge bg-danger" title="${item.erro || 'Erro desconhecido'}">Falha</span>`;
+                    } else {
+                        statusHtml = '<span class="badge bg-secondary">Aguardando</span>';
+                    }
+                    
+                    if (item.is_prioridade) {
+                        statusHtml += ' <span class="badge bg-warning text-dark ms-1">PRIORIDADE</span>';
+                    }
+
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold text-accent" style="color: var(--accent-color)">#${item.codigo}</div>
+                            <div class="small text-secondary text-truncate" style="max-width: 300px;">${item.nome || 'Sem título'}</div>
+                        </td>
+                        <td>${statusHtml}</td>
+                        <td><span class="text-secondary small">${item.data_limite || '--'}</span></td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <button onclick="priorizarObra('${item.codigo}')" class="btn btn-sm btn-outline-info" title="Priorizar">⭐</button>
+                                <button onclick="cancelarObra('${item.codigo}')" class="btn btn-sm btn-outline-danger" title="Remover">🗑️</button>
+                            </div>
+                        </td>
+                    `;
+                    corpo.appendChild(tr);
+                });
+            }
+        } catch (e) { console.error("Erro ao carregar fila", e); }
+    }
+
+    async function priorizarObra(codigo) {
+        try {
+            const res = await fetch('/api/priorizar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo })
+            });
+            if (res.ok) carregarFila();
+        } catch (e) {}
+    }
+
+    async function cancelarObra(codigo) {
+        if (!confirm(`Deseja remover a obra #${codigo} da fila?`)) return;
+        try {
+            const res = await fetch(`/api/cancelar_fila/${codigo}`, { method: 'DELETE' });
+            if (res.ok) carregarFila();
+        } catch (e) {}
+    }
+
+    async function limparFila() {
+        if (!confirm("Deseja limpar TODA a fila (exceto o que está processando)?")) return;
+        try {
+            const res = await fetch('/api/limpar_fila', { method: 'DELETE' });
+            if (res.ok) carregarFila();
         } catch (e) {}
     }
 
